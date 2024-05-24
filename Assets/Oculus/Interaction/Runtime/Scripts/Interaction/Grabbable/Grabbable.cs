@@ -59,6 +59,10 @@ namespace Oculus.Interaction
         private ITransformer _activeTransformer = null;
         private ITransformer OneGrabTransformer;
         private ITransformer TwoGrabTransformer;
+        
+        private Vector3 startPos;
+        private Quaternion startRot;
+        private bool layersChanged = false;
 
         protected override void Awake()
         {
@@ -69,6 +73,11 @@ namespace Oculus.Interaction
 
         protected override void Start()
         {
+            startPos = transform.position;
+            startRot = transform.rotation;
+            
+            Debug.LogError(startPos);
+            
             this.BeginStart(ref _started, () => base.Start());
 
             if (_targetTransform == null)
@@ -175,6 +184,12 @@ namespace Oculus.Interaction
             }
 
             _activeTransformer.UpdateTransform();
+
+            if (!layersChanged)
+            {
+                ChangeLayerWithAllChildren(gameObject, LayerMask.NameToLayer("GrabedObject"));
+                layersChanged = true;
+            }
         }
 
         private void EndTransform()
@@ -185,6 +200,32 @@ namespace Oculus.Interaction
             }
             _activeTransformer.EndTransform();
             _activeTransformer = null;
+            
+            transform.position = startPos;
+            transform.rotation = startRot;
+            
+            if(layersChanged)
+            {
+                ChangeLayerWithAllChildren(gameObject, LayerMask.NameToLayer("Default"));
+                layersChanged = false;
+            }
+        }
+        
+        [ContextMenu("Return to Start")]
+        private void ReturnToStart()
+        {
+            transform.position = startPos;
+            transform.rotation = startRot;
+        }
+
+        private void ChangeLayerWithAllChildren(GameObject root, int layer)
+        {
+            root.layer = layer;
+
+            foreach (Transform child in root.transform)
+            {
+                ChangeLayerWithAllChildren(child.gameObject, layer);
+            }
         }
 
         protected override void OnDisable()
